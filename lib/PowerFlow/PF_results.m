@@ -55,14 +55,19 @@ for k = 1:height(N)
 end
 
 %% =====================================================================
-% SLACK
+% GRIDS
 %% =====================================================================
-
 grid_idx = 0;
 
 for k = 1:height(N)
 
-    if ~strcmp(N.Parameter{k},'Slack')
+    if ~strcmp(N.Category{k},'Grid')
+        continue
+    end
+
+    if ~(strcmp(N.Parameter{k},'Slack') || ...
+         strcmp(N.Parameter{k},'PV')    || ...
+         strcmp(N.Parameter{k},'PQ'))
         continue
     end
 
@@ -70,16 +75,41 @@ for k = 1:height(N)
 
     bus_id = max(N.From(k),N.To(k));
 
-    gidx = find(gen(:,1)==bus_id,1);
-
-    OP.Grid(grid_idx).P_MW = gen(gidx,2);
-    OP.Grid(grid_idx).Q_MVAr = gen(gidx,3);
+    OP.Grid(grid_idx).Type = N.Parameter{k};
 
     OP.Grid(grid_idx).V_kV = ...
-        bus(bus_id,8) * bus(bus_id,10);
+        bus(bus_id,8)*bus(bus_id,10);
 
     OP.Grid(grid_idx).theta_rad = ...
         deg2rad(bus(bus_id,9));
+
+    if strcmp(N.Parameter{k},'Slack')
+
+        gidx = find(gen(:,1)==bus_id,1);
+
+        OP.Grid(grid_idx).P_MW = gen(gidx,2);
+        OP.Grid(grid_idx).Q_MVAr = gen(gidx,3);
+
+    elseif strcmp(N.Parameter{k},'PV')
+
+        gidx = find(gen(:,1)==bus_id,1);
+
+        OP.Grid(grid_idx).P_MW = gen(gidx,2);
+        OP.Grid(grid_idx).Q_MVAr = gen(gidx,3);
+
+    elseif strcmp(N.Parameter{k},'PQ')
+
+        id = N.ID(k);
+
+        OP.Grid(grid_idx).P_MW = ...
+            P.Grids(id).P_set * ...
+            P.System.P_base/1e6;
+
+        OP.Grid(grid_idx).Q_MVAr = ...
+            P.Grids(id).Q_set * ...
+            P.System.P_base/1e6;
+
+    end
 
 end
 
