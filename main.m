@@ -2,27 +2,23 @@ close all
 clear all
 clc
 
-% Aggiungi librerie
-addpath(genpath('lib'));
-addpath(genpath('data'));
-
 tic
-
 %% Loading Parameters and OP in struct from datasheet and powerflows
 %Static parameters
 parameters = loadParameters('parameters.csv');
+netlist = loadNetlist('netlist.csv');
 
-OP = PF_results(powerflow(parameters), parameters);
+OP = PF_results(powerflow(parameters,netlist), parameters, netlist);
 
 % Assignation
-operating_points_conv = OP_Converters(OP.Gen(1), parameters);
-operating_points_line = OP_Line(OP.PI(1), parameters);
-operating_points_gen = OP_Grids(OP.Gen(2), parameters);
+operating_points_conv = OP_Converters(OP.Converter(1), parameters.Converters(1));
+operating_points_line = OP_Line(OP.Line(1), parameters.Lines(1));
+operating_points_grid = OP_Grids(OP.Grid(1), parameters.Grids(1));
 
 %% Call all the necessary elements
-conv = Converter_GFL(1, parameters.Type, parameters, operating_points_conv);
-line = Line(2, parameters, operating_points_line);
-grid = Grid(3, parameters, operating_points_gen);
+conv = Converter_GFL(1, 'PQ', parameters.Converters(1), operating_points_conv);
+line = Line(1, parameters.Lines(1), operating_points_line);
+grid = Grid(1, parameters.Grids(1), operating_points_grid);
 
 
 %% Build the state spaces

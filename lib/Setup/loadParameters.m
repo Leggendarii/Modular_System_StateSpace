@@ -1,75 +1,190 @@
 function P = loadParameters(csv_file_name)
 
-parameter = readtable(csv_file_name);
-getPar = @(name) parameter.Value(strcmp(parameter.Name,name));
+parameter = readtable(csv_file_name,'TextType','string');
 
-%% Wind produced
-P.Pset = 0.5;
-P.Qset = 0;
-P.Type = 'PV';
+getNum = @(cat,id,par) ...
+    parameter.Value( ...
+        strcmp(parameter.Category,cat) & ...
+        parameter.ID == id & ...
+        strcmp(parameter.Parameter,par));
 
-%% Grid values
-P.Grid_SCR = getPar('SCR');
-P.Grid_XR  = getPar('XR');
+getStr = @(cat,id,par) ...
+    char(parameter.Value( ...
+    parameter.Category==cat & ...
+    parameter.ID==id & ...
+    parameter.Parameter==par));
 
-%% Nominal parameters
-P.Ts      = getPar('Ts') * 1e-6;
-P.f_base  = getPar('f_base');
-P.V_base  = getPar('V_base') * 1e3;
-P.P_base  = getPar('P_base') * 1e6;
 
-%% Converter parameters
-P.L_vsc   = getPar('L_vsc');
-P.C_filt  = getPar('C_filt');
-P.R_vsc   = getPar('R_vsc');
-P.R_filt  = getPar('R_filt');
-P.R_grid  = getPar('R_grid');
-P.L_grid  = getPar('L_grid');
 
-%% Control gains
-P.kp_outer_V_pu = getPar('Kp_outer_V');
-P.ki_outer_V_pu = getPar('Ki_outer_V');
+%% System
 
-P.kp_outer_P_pu = getPar('Kp_outer_P');
-P.ki_outer_P_pu = getPar('Ki_outer_P');
-
-P.kp_inner_d_pu = getPar('Kp_inner_d');
-P.ki_inner_d_pu = getPar('Ki_inner_d');
-
-P.kp_inner_q_pu = getPar('Kp_inner_q');
-P.ki_inner_q_pu = getPar('Ki_inner_q');
-
-P.kp_pll = getPar('Kp_pll');
-P.ki_pll = getPar('Ki_pll');
-
-P.T1 = getPar('T1');
-P.T2 = getPar('T2');
-
-%% DC parameters
-[P.C_dc, P.V_dc] = DC_Cap(P.V_base, P.P_base);
-
-P.t_charge = 0.5;
-P.I_charge = P.C_dc * P.V_dc / P.t_charge;
-
-%% Grid equivalent
-[P.L_grid, P.R_grid] = thevenin( ...
-    P.Grid_SCR,...
-    P.Grid_XR,...
-    P.V_base,...
-    P.P_base,...
-    P.f_base);
-
-%% Additional values (pi section and extra filter VSC)
-P.R_line = 2e-4; % Ohm
-P.L_line = 8e-6; % H
-P.C_line = 2e-9; % F
-
-P.R_vsc2 = 0.55;
-P.L_vsc2 = 0.0350141;
+P.System.Ts     = getNum("System",0,"Ts")*1e-6;
+P.System.f_base = getNum("System",0,"f_base");
+P.System.V_base = getNum("System",0,"V_base")*1e3;
+P.System.P_base = getNum("System",0,"P_base")*1e6;
 
 %% Base quantities
-P.omega_b = 2*pi*P.f_base;
-P.Z_base  = P.V_base^2/P.P_base;
-P.L_base  = P.Z_base/P.omega_b;
-P.C_base  = 1/(P.Z_base*P.omega_b);
+
+P.System.omega_b = 2*pi*P.System.f_base;
+
+P.System.Z_base = ...
+    P.System.V_base^2/P.System.P_base;
+
+P.System.L_base = ...
+    P.System.Z_base/P.System.omega_b;
+
+P.System.C_base = ...
+    1/(P.System.Z_base*P.System.omega_b);
+
+%% Converters
+
+conv_ids = unique(parameter.ID(parameter.Category=="Converter"));
+
+for k = 1:length(conv_ids)
+
+    id = conv_ids(k);
+
+    P.Converters(id).P_set = ...
+        getNum("Converter",id,"P_set");
+
+    P.Converters(id).Q_set = ...
+        getNum("Converter",id,"Q_set");
+
+    P.Converters(id).L_vsc = ...
+        getNum("Converter",id,"L_vsc");
+
+    P.Converters(id).C_vsc = ...
+        getNum("Converter",id,"C_vsc");
+
+    P.Converters(id).R_vsc = ...
+        getNum("Converter",id,"R_vsc");
+
+    P.Converters(id).R_vsc2 = ...
+        getNum("Converter",id,"R_vsc2");
+
+    P.Converters(id).L_vsc2 = ...
+        getNum("Converter",id,"L_vsc2");
+
+    P.Converters(id).Kp_outer_V = ...
+        getNum("Converter",id,"Kp_outer_V");
+
+    P.Converters(id).Ki_outer_V = ...
+        getNum("Converter",id,"Ki_outer_V");
+
+    P.Converters(id).Kp_outer_P = ...
+        getNum("Converter",id,"Kp_outer_P");
+
+    P.Converters(id).Ki_outer_P = ...
+        getNum("Converter",id,"Ki_outer_P");
+
+    P.Converters(id).Kp_inner_d = ...
+        getNum("Converter",id,"Kp_inner_d");
+
+    P.Converters(id).Ki_inner_d = ...
+        getNum("Converter",id,"Ki_inner_d");
+
+    P.Converters(id).Kp_inner_q = ...
+        getNum("Converter",id,"Kp_inner_q");
+
+    P.Converters(id).Ki_inner_q = ...
+        getNum("Converter",id,"Ki_inner_q");
+
+    P.Converters(id).Kp_pll = ...
+        getNum("Converter",id,"Kp_pll");
+
+    P.Converters(id).Ki_pll = ...
+        getNum("Converter",id,"Ki_pll");
+
+    P.Converters(id).T1 = ...
+        getNum("Converter",id,"T1");
+
+    P.Converters(id).T2 = ...
+        getNum("Converter",id,"T2");
+
+    [P.Converters(id).C_dc,...
+     P.Converters(id).V_dc] = ...
+        DC_Cap( ...
+        P.System.V_base,...
+        P.System.P_base);
+
+    P.Converters(id).t_charge = 0.5;
+
+    P.Converters(id).I_charge = ...
+        P.Converters(id).C_dc * ...
+        P.Converters(id).V_dc / ...
+        P.Converters(id).t_charge;
+    P.Converters(id).f_base = P.System.f_base;
+
+    P.Converters(id).V_base = P.System.V_base;
+    P.Converters(id).P_base = P.System.P_base;
+    
+    P.Converters(id).omega_b = P.System.omega_b;
+    P.Converters(id).Z_base  = P.System.Z_base;
+    P.Converters(id).L_base  = P.System.L_base;
+    P.Converters(id).C_base  = P.System.C_base;
+
+end
+
+%% Grids
+
+grid_ids = unique(parameter.ID(parameter.Category=="Grid"));
+
+for k = 1:length(grid_ids)
+
+    id = grid_ids(k);
+
+    P.Grids(id).SCR = ...
+        getNum("Grid",id,"SCR");
+
+    P.Grids(id).XR = ...
+        getNum("Grid",id,"XR");
+
+    [P.Grids(id).L_grid,...
+     P.Grids(id).R_grid] = ...
+        thevenin( ...
+        P.Grids(id).SCR,...
+        P.Grids(id).XR,...
+        P.System.V_base,...
+        P.System.P_base,...
+        P.System.f_base);
+
+    P.Grids(id).f_base = P.System.f_base;
+    P.Grids(id).V_base = P.System.V_base;
+    P.Grids(id).P_base = P.System.P_base;
+    
+    P.Grids(id).omega_b = P.System.omega_b;
+    P.Grids(id).Z_base  = P.System.Z_base;
+    P.Grids(id).L_base  = P.System.L_base;
+    P.Grids(id).C_base  = P.System.C_base;
+
+end
+
+%% Lines
+
+line_ids = unique(parameter.ID(parameter.Category=="Line"));
+
+for k = 1:length(line_ids)
+
+    id = line_ids(k);
+
+    P.Lines(id).R_line = ...
+        getNum("Line",id,"R_line");
+
+    P.Lines(id).L_line = ...
+        getNum("Line",id,"L_line");
+
+    P.Lines(id).C_line = ...
+        getNum("Line",id,"C_line");
+
+    P.Lines(id).f_base = P.System.f_base;
+    P.Lines(id).V_base = P.System.V_base;
+    P.Lines(id).P_base = P.System.P_base;
+    
+    P.Lines(id).omega_b = P.System.omega_b;
+    P.Lines(id).Z_base  = P.System.Z_base;
+    P.Lines(id).L_base  = P.System.L_base;
+    P.Lines(id).C_base  = P.System.C_base;
+
+end
+
 end

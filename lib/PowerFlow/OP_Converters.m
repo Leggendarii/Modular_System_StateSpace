@@ -12,7 +12,7 @@ V = PF.V_kV/param.V_base * 1e3;
 
 Rf1 = param.R_vsc/Zb;
 Xf1 = 2*pi*param.f_base*param.L_vsc/Zb;
-Bc = 2*pi*param.f_base*param.C_filt*Zb;
+Bc = 2*pi*param.f_base*param.C_vsc*Zb;
 
 Rf2 = param.R_vsc2/Zb;
 Xf2 = 2*pi*param.f_base*param.L_vsc2/Zb;
