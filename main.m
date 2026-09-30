@@ -4,6 +4,7 @@ clc
 
 % Aggiungi librerie
 addpath(genpath('lib'));
+addpath(genpath('data'));
 
 tic
 
