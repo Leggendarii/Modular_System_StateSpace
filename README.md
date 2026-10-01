@@ -2,6 +2,8 @@
 
 This project provides a modular MATLAB workflow for building and analyzing small-signal state-space models of electrical power systems. It combines parameter and network data, a power-flow operating point, component models, and system-level interconnection before performing modal analysis.
 
+The workflow uses a mixed-base approach: the network power flow is solved on a single system base, while dynamic component models are evaluated using local base quantities derived from the parameter set.
+
 ## Requirements
 
 - MATLAB
@@ -72,7 +74,9 @@ flowchart TD
 
 ### 1. Load parameters and the netlist
 
-`loadParameters` reads the parameter table and creates the `parameters` structure. It also calculates system base quantities such as angular frequency, base impedance, base inductance, and base capacitance. Converter, line, and grid-specific derived quantities are stored in the corresponding structure arrays.
+`loadParameters` reads the parameter table and creates the `parameters` structure. It also calculates system base quantities such as angular frequency, base impedance, base inductance, and base capacitance.
+
+In addition to the system base, component-local base quantities are derived and stored in the converter, line, and grid structures. These local bases are used by the dynamic models during operating-point conversion and linearization.
 
 `loadNetlist` reads the connectivity table into a MATLAB table.
 
@@ -88,11 +92,11 @@ flowchart TD
 - grid `R_grid` entries become the grid Thevenin RL branch;
 - line capacitor entries are added as bus shunts, split between the two line terminals.
 
-All electrical quantities are converted to the system base before the MATPOWER case is solved. MATPOWER returns bus voltages and angles, generator powers, and branch power flows.
+All electrical quantities are converted to a single system base before the MATPOWER case is solved. MATPOWER returns bus voltages and angles, generator powers, and branch power flows.
 
 ### 3. Extract and convert operating points
 
-`PF_results` extracts the operating-point values for each converter, line, and grid from the MATPOWER solution. The `OP_*` functions then convert these values into the per-unit quantities required by the dynamic models, including:
+`PF_results` extracts the operating-point values for each converter, line, and grid from the MATPOWER solution. The `OP_*` functions then map these values from the single power-flow base to the per-unit quantities required by each dynamic component model, including:
 
 - converter currents, filter voltages, controller states, and references;
 - line terminal voltages and currents for the PI section;
@@ -141,6 +145,7 @@ The [`case_studies/`](case_studies/) folder contains separate study configuratio
 | Folder | Case |
 | --- | --- |
 | [`Case_1`](case_studies/Case_1/) | OWPP + Onshore STATCOM |
+| [`Case_2`](case_studies/Case_2/) | 2 x OWPP different power size |
 
 Add future studies to this list as folders are added. Each case has its own parameter and netlist files.
 
