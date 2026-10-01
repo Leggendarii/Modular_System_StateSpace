@@ -167,4 +167,39 @@ for k = 1:height(N)
 
 end
 
+%% =====================================================================
+% RL BRANCHES
+%% =====================================================================
+rl_idx = 0;
+
+for k = 1:height(N)
+
+    if string(N.Category(k)) ~= "RL"
+        continue
+    end
+
+    if string(N.Parameter(k)) ~= "R"
+        continue
+    end
+
+    rl_idx = rl_idx + 1;
+
+    from_bus = N.From(k);
+    to_bus   = N.To(k);
+
+    V1_mag_kV = bus(from_bus,8) * bus(from_bus,10);
+    V2_mag_kV = bus(to_bus,8)   * bus(to_bus,10);
+
+    th1 = deg2rad(bus(from_bus,9));
+    th2 = deg2rad(bus(to_bus,9));
+
+    OP.RL(rl_idx).V1_kV      = V1_mag_kV;
+    OP.RL(rl_idx).theta1_rad = th1;
+
+    OP.RL(rl_idx).V2_kV      = V2_mag_kV;
+    OP.RL(rl_idx).theta2_rad = th2;
+
+end
+
+
 end

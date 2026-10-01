@@ -193,4 +193,28 @@ for k = 1:length(line_ids)
 
 end
 
+%% RL branches
+rl_ids = unique(parameter.ID(parameter.Category=="RL"));
+
+for k = 1:length(rl_ids)
+
+    id = rl_ids(k);
+
+    P.RL(id).R = ...
+        getNum("RL",id,"R");
+
+    P.RL(id).L = ...
+        getNum("RL",id,"L");
+
+    P.RL(id).f_base = P.System.f_base;
+    P.RL(id).V_base = P.System.V_base;
+    P.RL(id).P_base = P.System.P_base;
+
+    P.RL(id).omega_b = P.System.omega_b;
+    P.RL(id).Z_base  = P.System.Z_base;
+    P.RL(id).L_base  = P.System.L_base;
+    P.RL(id).C_base  = P.System.C_base;
+
+end
+
 end

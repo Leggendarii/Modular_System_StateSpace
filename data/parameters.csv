@@ -6,7 +6,6 @@ System,0,V_base,220,kV
 System,0,P_base,120,MVA
 
 Converter,1,P_set,1,pu
-Converter,1,Q_set,0,pu
 Converter,1,L_vsc,0.0350141,H
 Converter,1,C_vsc,3.18E-08,F
 Converter,1,R_vsc,0.55,Ohm
@@ -47,6 +46,13 @@ Converter,2,T2,2.25055981418168,s
 Line,1,R_line,2e-4,Ohm
 Line,1,L_line,8e-6,H
 Line,1,C_line,2e-9,F
+
+Line,2,R_line,2e-4,Ohm
+Line,2,L_line,8e-6,H
+Line,2,C_line,2e-9,F
+
+RL,1,R,2e-4,Ohm
+RL,1,L,8e-6,H
 
 Grid,1,SCR,10,pu
 Grid,1,XR,7,pu

@@ -1,6 +1,6 @@
 # Modular System State-Space
 
-This project builds a modular small-signal state-space model of an electrical power system. The main workflow first computes an AC power-flow operating point, then builds and linearizes the dynamic models of the converters, transmission line, and grid equivalent. The resulting models are interconnected and used for modal stability analysis.
+This project provides a modular MATLAB workflow for building and analyzing small-signal state-space models of electrical power systems. It combines parameter and network data, a power-flow operating point, component models, and system-level interconnection before performing modal analysis.
 
 ## Requirements
 
@@ -8,6 +8,7 @@ This project builds a modular small-signal state-space model of an electrical po
 - [MATPOWER](https://matpower.org/) installed separately and available on the MATLAB path
 - Symbolic Math Toolbox
 - Control System Toolbox
+- Optimization Toolbox for the standalone `power_flow_DC.m` example (`fsolve`)
 
 The repository does not currently enforce a minimum MATLAB or MATPOWER version. The implementation uses symbolic Jacobians, `ss` models, `connect`, `sumblk`, and `uifigure`.
 
@@ -15,7 +16,7 @@ The repository does not currently enforce a minimum MATLAB or MATPOWER version. 
 
 ```text
 .
-|-- main.m                         Main state-space workflow
+|-- main.m                         State-space benchmark workflow
 |-- power_flow_DC.m                Standalone DC/AC power-flow example
 |-- data/
 |   |-- parameters.csv             System, converter, line, and grid parameters
@@ -31,13 +32,16 @@ The repository does not currently enforce a minimum MATLAB or MATPOWER version. 
 |   |   |-- PF_results.m            Extracts operating-point values
 |   |   |-- OP_Converters.m         Converts converter operating points to pu
 |   |   |-- OP_Line.m               Converts line operating points to pu
-|   |   `-- OP_Grids.m               Converts grid operating points to pu
+|   |   |-- OP_Grids.m              Converts grid operating points to pu
+|   |   `-- OP_RL.m                 Converts RL branch operating points to pu
 |   `-- State_Space/
 |       |-- stability_analysis.m    Eigenvalue and participation-factor analysis
 |       `-- Classes/
 |           |-- Converter_GFL.m      Grid-following converter model
 |           |-- Line.m               PI-section line model
-|           `-- Grid.m               Grid Thevenin RL model
+|           |-- Grid.m               Grid Thevenin RL model
+|           `-- RL.m                 Series RL branch model
+|-- case_studies/                    Separate case-study inputs and workflow
 |-- DESCRIPTION.md                  Short project description
 `-- LICENSE                         MIT license
 ```
@@ -49,11 +53,22 @@ The model is configured through two CSV files in [`data/`](data/):
 - [`parameters.csv`](data/parameters.csv) contains base quantities, setpoints, electrical parameters, controller gains, and grid strength data.
 - [`netlist.csv`](data/netlist.csv) defines component IDs, component parameters, and the `From`/`To` bus connections. A connection to bus `0` represents a shunt-connected source or element.
 
-The current example contains two converters, one line, and one grid equivalent. Converter 1 is used in `PQ` mode, converter 2 in `PV` mode, and the grid is connected as a slack source according to the netlist.
+The files in `data/` provide the input configuration for the root-level benchmark. Each folder under `case_studies/` contains inputs for a separate study. The netlist describes component types, operating modes, and bus connections; parameter values are provided separately. A `PQ` source requires both `P_set` and `Q_set` entries in its parameter file.
 
 ## Main Workflow
 
 The execution path in [`main.m`](main.m) consists of the following steps.
+
+```mermaid
+flowchart TD
+	A[Parameter and netlist CSV files] --> B[Load data and derive base quantities]
+	B --> C[Build and solve AC power flow]
+	C --> D[Extract component operating points]
+	D --> E[Build symbolic component models]
+	E --> F[Linearize models at operating points]
+	F --> G[Interconnect subsystem state-space models]
+	G --> H[Modal and participation-factor analysis]
+```
 
 ### 1. Load parameters and the netlist
 
@@ -68,6 +83,7 @@ The execution path in [`main.m`](main.m) consists of the following steps.
 - buses are created from the highest non-zero bus number in the netlist;
 - `PQ`, `PV`, and `Slack` source entries become MATPOWER bus or generator definitions;
 - converter `R_vsc2` entries become series RL branches;
+- `RL` entries become series RL branches;
 - line `R_line` entries become series RL branches;
 - grid `R_grid` entries become the grid Thevenin RL branch;
 - line capacitor entries are added as bus shunts, split between the two line terminals.
@@ -90,6 +106,7 @@ Each class exposes a `build()` method. It defines symbolic differential equation
 
 - `Converter_GFL` includes the converter filters, DC-link dynamics, outer active/reactive or voltage control loops, inner current controllers, PLL, and frame transformations.
 - `Line` represents a series RL branch with shunt capacitance at both terminals.
+- `RL` represents a generic series RL branch.
 - `Grid` represents the Thevenin equivalent as a dynamic RL branch.
 
 For the converter, the algebraic equations are eliminated symbolically. The resulting state-space Jacobians are obtained from the differential and algebraic equations.
@@ -102,31 +119,7 @@ Each model receives unique state names based on its component ID. These names ar
 
 ### 6. Interconnect the subsystems
 
-`main.m` assigns signal names to the inputs and outputs of each `ss` model. MATLAB `connect()` then joins signals with matching names.
-
-The interconnection represents the following signal flow:
-
-```text
-Converter 1 -> Line -> Grid
-			  ^
-			  |
-		  Converter 2
-```
-
-The two `sumblk` equations implement the current balance at the node shared by the line, grid, and converter 2:
-
-```matlab
-Ig_d = Ig1_d - Ic2_d
-Ig_q = Ig1_q - Ic2_q
-```
-
-The external inputs currently exposed by the connected model are:
-
-- `Pref`, `Vdc_ref`, `Q_ref`: converter 1 references;
-- `Pref2`, `Vdc_ref2`, `Vpoc_ref2`: converter 2 references;
-- `V0_1_d`, `V0_1_q`: grid voltage inputs.
-
-The selected outputs include converter currents, grid current, and the line terminal voltages.
+The benchmark assigns names to subsystem inputs and outputs, then uses MATLAB `connect()` and summing blocks to form the interconnected model. Signal names and the chosen external inputs and outputs depend on the configured system.
 
 ### 7. Perform modal stability analysis
 
@@ -139,7 +132,19 @@ The selected outputs include converter currents, grid current, and the line term
 
 The critical mode is selected as the stable mode with the lowest damping ratio. If no stable modes exist, the first non-stable mode is selected.
 
-## Running the Main Workflow
+## Benchmark and Case Studies
+
+The root-level [`main.m`](main.m) is used as the project benchmark. It uses the shared model-building and analysis workflow with the input files under `data/`.
+
+The [`case_studies/`](case_studies/) folder contains separate study configurations. The current list is:
+
+| Folder | Case |
+| --- | --- |
+| [`Case_1`](case_studies/Case_1/) | OWPP + Onshore STATCOM |
+
+Add future studies to this list as folders are added. Each case has its own parameter and netlist files.
+
+## Running the Benchmark
 
 From the repository root, make the library and data folders available on the MATLAB path before calling `main`:
 
@@ -150,6 +155,8 @@ main
 ```
 
 MATPOWER must already be installed and available on the MATLAB path. The current `main.m` expects `parameters.csv` and `netlist.csv` to be resolvable from the MATLAB path; adding `data/` as shown above is therefore required unless the files are copied or the MATLAB path is configured differently.
+
+To run a case study, use that case's folder and CSV inputs, and add the repository's `lib/` folder to the MATLAB path as well.
 
 ## Standalone DC Power-Flow Example
 
