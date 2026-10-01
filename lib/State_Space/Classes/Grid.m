@@ -58,7 +58,7 @@ classdef Grid
             A = symb.A; B = symb.B; C = symb.C; D = symb.D;
 
             %%   
-            params_eq = [P.R_grid/P.Z_base; P.L_grid/P.L_base; P.omega_b];
+            params_eq = [P.R_grid; P.L_grid; P.omega_b];
             x_eq = [OP.ig_d_s; OP.ig_q_s];
             u_eq = [OP.vg_d_s; OP.vg_q_s; OP.vin_d_s; OP.vin_q_s];
 

@@ -24,7 +24,7 @@ classdef Converter_GFL
             syms IL_d_s IL_q_s Iout_d_s Iout_q_s Vpoc_d_s Vpoc_q_s Flux_PoC W_Q Qd Qq Flux_PLL Theta Vdc_mes Flux_laglead Flux_DC ...
                  Iref_d_c Iref_q_c Vvsc_d_c Vvsc_q_c Vpoc_d_c Vpoc_q_c IL_d_c IL_q_c Vvsc_d_s Vvsc_q_s Vdc_filt Iout_d_c Iout_q_c...
                  R1 L1 R2 L2 C3 Wn Kp_out_P Ki_out_P Kp_out_V Ki_out_V Kp_in_d Ki_in_d Kp_in_q Ki_in_q Kp_PLL Ki_PLL ...
-                 P_ref Vpoc_ref Vdc_ref Q_ref Cdc Vdc_n Pn sT1 sT2 Vin_d_s Vin_q_s
+                 P_ref Vpoc_ref Vdc_ref Q_ref Cdc Vdc_n Pn sT1 sT2 Vin_d_s Vin_q_s Kbase
             
             %% Vettore stato, algebraico e ingresso
             if strcmp(obj.Mode,'PV')
@@ -36,8 +36,8 @@ classdef Converter_GFL
             else
                 error('Converter mode must be PQ or PV')
             end
-            h = [Iout_d_s; Iout_q_s];
-            params = [R1; L1; R2; L2; C3; Wn; Kp_out_P; Kp_out_V; Ki_out_V; Ki_out_P; Kp_in_d; Ki_in_d; Kp_in_q; Ki_in_q; Kp_PLL; Ki_PLL; Cdc; Vdc_n; Pn; sT1; sT2];  
+            h = Kbase*[Iout_d_s; Iout_q_s];
+            params = [R1; L1; R2; L2; C3; Wn; Kp_out_P; Kp_out_V; Ki_out_V; Ki_out_P; Kp_in_d; Ki_in_d; Kp_in_q; Ki_in_q; Kp_PLL; Ki_PLL; Cdc; Vdc_n; Pn; sT1; sT2; Kbase];  
             y = [Iref_d_c; Iref_q_c; Vvsc_d_c; Vvsc_q_c; Vpoc_d_c; Vpoc_q_c; IL_d_c; IL_q_c; Vvsc_d_s; Vvsc_q_s; Vdc_filt; Iout_d_c; Iout_q_c];
            
             
@@ -138,7 +138,7 @@ classdef Converter_GFL
             A = symb.A; B = symb.B; C = symb.C; D = symb.D;
 
             %% Assegnazione condizioni iniziali
-            params_eq = [P.R_vsc/P.Z_base; P.L_vsc/P.L_base; P.R_vsc2/P.Z_base; P.L_vsc2/P.L_base; P.C_vsc/P.C_base; P.omega_b; P.Kp_outer_P; P.Kp_outer_V; P.Ki_outer_V; P.Ki_outer_P; P.Kp_inner_d; P.Ki_inner_d; P.Kp_inner_q; P.Ki_inner_q; P.Kp_pll; P.Ki_pll; P.C_dc; P.V_dc; P.P_base; P.T1; P.T2];
+            params_eq = [P.R_vsc; P.L_vsc; P.R_vsc2; P.L_vsc2; P.C_vsc; P.omega_b; P.Kp_outer_P; P.Kp_outer_V; P.Ki_outer_V; P.Ki_outer_P; P.Kp_inner_d; P.Ki_inner_d; P.Kp_inner_q; P.Ki_inner_q; P.Kp_pll; P.Ki_pll; P.C_dc; P.V_dc; P.S_nom; P.T1; P.T2; P.S_nom/P.P_base];
             if strcmp(obj.Mode,'PV')
             x_eq = [OP.iL_d_s; OP.iL_q_s; OP.vpoc_d_s; OP.vpoc_q_s; OP.flux_DC/P.Ki_outer_P; OP.flux_PoC/P.Ki_outer_V; OP.qd/P.Ki_inner_d; OP.qq/P.Ki_inner_q; OP.flux_PLL/P.Ki_pll; OP.theta; OP.vdc_mes; OP.vdc_mes*P.T2; OP.iout_d_s; OP.iout_q_s];
             u_eq = [OP.pref; OP.vdc_ref; OP.vpoc_ref; OP.vin_d_s; OP.vin_q_s];

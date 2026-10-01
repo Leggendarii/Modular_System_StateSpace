@@ -3,9 +3,10 @@ Category,ID,Parameter,Value,Unit
 System,0,Ts,10,us
 System,0,f_base,50,Hz
 System,0,V_base,220,kV
-System,0,P_base,120,MVA
+System,0,P_base,200,MVA
 
-Converter,1,P_set,1,pu
+Converter,1,P_set,0.5,pu
+Converter,1,S_nom,100,MVA
 Converter,1,L_vsc,0.0350141,H
 Converter,1,C_vsc,3.18E-08,F
 Converter,1,R_vsc,0.55,Ohm
@@ -24,7 +25,8 @@ Converter,1,Ki_pll,6.18790253608525,pu/s
 Converter,1,T1,1.94472507430466,s
 Converter,1,T2,2.25055981418168,s
 
-Converter,2,P_set,0,pu
+Converter,2,P_set,1,pu
+Converter,2,S_nom,100,MVA
 Converter,2,L_vsc,0.0350141,H
 Converter,2,C_vsc,3.18E-08,F
 Converter,2,R_vsc,0.55,Ohm

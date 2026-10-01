@@ -1,33 +1,35 @@
 function OP = OP_Converters(PF, param)
 
-% Base for peruniting
-Sb = param.P_base;
-Vb = param.V_base;
-Zb = Vb^2/Sb;
+%% Per-unit quantities
 
-% Perinitization
-P = PF.P_MW/param.P_base * 1e6;
-Q = PF.Q_MVAr/param.P_base * 1e6;
-V = PF.V_kV/param.V_base * 1e3;
+P = PF.P_MW * 1e6 / param.S_nom;
+Q = PF.Q_MVAr * 1e6 / param.S_nom;
+V = PF.V_kV * 1e3 / param.V_base;
 
-Rf1 = param.R_vsc/Zb;
-Xf1 = 2*pi*param.f_base*param.L_vsc/Zb;
-Bc = 2*pi*param.f_base*param.C_vsc*Zb;
+%% Filter parameters (already in pu)
 
-Rf2 = param.R_vsc2/Zb;
-Xf2 = 2*pi*param.f_base*param.L_vsc2/Zb;
+Rf1 = param.R_vsc;
+Xf1 = param.L_vsc;
+Bc  = param.C_vsc;
 
-% PoC Values (Converter frame)
+Rf2 = param.R_vsc2;
+Xf2 = param.L_vsc2;
+
+%% PoC values (converter frame)
+
 OP.vpoc_d_c = V;
 OP.vpoc_q_c = 0;
-OP.iout_d_c   = P/V;
-OP.iout_q_c   = -Q/V;
 
-% Grid terminal intial conditions
+OP.iout_d_c = P/V;
+OP.iout_q_c = -Q/V;
+
+%% Grid-side terminal
+
 OP.vin_d_c = OP.vpoc_d_c - Rf2*OP.iout_d_c + Xf2*OP.iout_q_c;
 OP.vin_q_c = OP.vpoc_q_c - Xf2*OP.iout_d_c - Rf2*OP.iout_q_c;
 
-% VSC filter (Converter frame)
+%% VSC filter
+
 OP.icf_d_c = 0;
 OP.icf_q_c = Bc*V;
 
@@ -37,41 +39,53 @@ OP.iL_q_c = OP.iout_q_c + OP.icf_q_c;
 OP.vvsc_d_c = OP.vpoc_d_c + Rf1*OP.iL_d_c - Xf1*OP.iL_q_c;
 OP.vvsc_q_c = OP.vpoc_q_c + Xf1*OP.iL_d_c + Rf1*OP.iL_q_c;
 
-% Return to global frame
-OP.vvsc_d_s = cos(PF.theta_rad)*OP.vvsc_d_c - sin(PF.theta_rad)*OP.vvsc_q_c;
-OP.vvsc_q_s = sin(PF.theta_rad)*OP.vvsc_d_c + cos(PF.theta_rad)*OP.vvsc_q_c;
+%% Global reference frame
 
-OP.vpoc_d_s = cos(PF.theta_rad)*OP.vpoc_d_c - sin(PF.theta_rad)*OP.vpoc_q_c;
-OP.vpoc_q_s = sin(PF.theta_rad)*OP.vpoc_d_c + cos(PF.theta_rad)*OP.vpoc_q_c;
+c = cos(PF.theta_rad);
+s = sin(PF.theta_rad);
 
-OP.iL_d_s = cos(PF.theta_rad)*OP.iL_d_c - sin(PF.theta_rad)*OP.iL_q_c;
-OP.iL_q_s = sin(PF.theta_rad)*OP.iL_d_c + cos(PF.theta_rad)*OP.iL_q_c;
+OP.vvsc_d_s = c*OP.vvsc_d_c - s*OP.vvsc_q_c;
+OP.vvsc_q_s = s*OP.vvsc_d_c + c*OP.vvsc_q_c;
 
-OP.iout_d_s = cos(PF.theta_rad)*OP.iout_d_c - sin(PF.theta_rad)*OP.iout_q_c;
-OP.iout_q_s = sin(PF.theta_rad)*OP.iout_d_c + cos(PF.theta_rad)*OP.iout_q_c;
+OP.vpoc_d_s = c*OP.vpoc_d_c - s*OP.vpoc_q_c;
+OP.vpoc_q_s = s*OP.vpoc_d_c + c*OP.vpoc_q_c;
 
-OP.vin_d_s = cos(PF.theta_rad)*OP.vin_d_c - sin(PF.theta_rad)*OP.vin_q_c;
-OP.vin_q_s = sin(PF.theta_rad)*OP.vin_d_c + cos(PF.theta_rad)*OP.vin_q_c;
+OP.iL_d_s = c*OP.iL_d_c - s*OP.iL_q_c;
+OP.iL_q_s = s*OP.iL_d_c + c*OP.iL_q_c;
 
-% Controller states
+OP.iout_d_s = c*OP.iout_d_c - s*OP.iout_q_c;
+OP.iout_q_s = s*OP.iout_d_c + c*OP.iout_q_c;
+
+OP.vin_d_s = c*OP.vin_d_c - s*OP.vin_q_c;
+OP.vin_q_s = s*OP.vin_d_c + c*OP.vin_q_c;
+
+%% Controller states
+
 OP.qd = OP.vvsc_d_c;
 OP.qq = OP.vvsc_q_c;
 
 OP.flux_DC  = OP.iL_d_c;
 OP.flux_PoC = OP.iL_q_c;
+
 OP.flux_PLL = 0;
+
 OP.w_q = OP.iL_q_c;
 
 OP.iref_d_c = OP.flux_DC;
 OP.iref_q_c = OP.flux_PoC;
 
-% References
-OP.vdc_ref  = 1;
-OP.vdc_mes  = 1;
+%% References
+
+OP.vdc_ref = 1;
+OP.vdc_mes = 1;
+
 OP.vpoc_ref = OP.vpoc_d_c;
-OP.pref     = P;
+
+OP.pref = P;
 OP.qref = Q;
 
-% Angle
+%% Angle
+
 OP.theta = PF.theta_rad;
+
 end

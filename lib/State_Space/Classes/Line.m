@@ -62,7 +62,7 @@ classdef Line
             A = symb.A; B = symb.B; C = symb.C; D = symb.D;
 
             %%   
-            params_eq = [P.R_line/P.Z_base; P.L_line/P.L_base; (P.C_line/2)/P.C_base; P.omega_b];
+            params_eq = [P.R_line; P.L_line; (P.C_line/2); P.omega_b];
             x_eq = [OP.iL_d_s; OP.iL_q_s; OP.vin_d_s; OP.vin_q_s; OP.vout_d_s; OP.vout_q_s];
             u_eq = [OP.iin_d_s; OP.iin_q_s; OP.iout_d_s; OP.iout_q_s];
 

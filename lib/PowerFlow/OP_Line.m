@@ -1,29 +1,22 @@
 function OP = OP_Line(PF,param)
 
-%% Base quantities
-
-Vb = param.V_base;
-Zb = param.Z_base;
-
 %% Terminal voltages (pu)
 
-Vin  = PF.V1_kV*1e3/Vb * exp(1j*PF.theta1_rad);
-Vout = PF.V2_kV*1e3/Vb * exp(1j*PF.theta2_rad);
+Vin  = PF.V1_kV*1e3/param.V_base * exp(1j*PF.theta1_rad);
+Vout = PF.V2_kV*1e3/param.V_base * exp(1j*PF.theta2_rad);
 
-%% PI-section parameters (pu)
+%% PI-section parameters (already in pu)
 
-R  = param.R_line/Zb;
-L  = param.L_line/param.L_base;
-Cp = (param.C_line/2)/param.C_base;
+R  = param.R_line;
+L  = param.L_line;
+Cp = param.C_line/2;
 
 %% Series RL current
-%
-% (R+jL)IL = Vin-Vout
-%
 
 IL = (Vin - Vout)/(R + 1j*L);
 
 %% Terminal currents
+
 Iin  = IL + 1j*Cp*Vin;
 Iout = IL - 1j*Cp*Vout;
 
