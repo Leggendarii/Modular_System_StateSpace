@@ -1,7 +1,7 @@
 close all
 clear all
 clc
-clc
+
 tic
 %% Loading Parameters and OP in struct from datasheet and powerflows
 %Static parameters
