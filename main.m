@@ -1,6 +1,6 @@
 close all
 clear all
-clc
+
 
 tic
 %% Loading Parameters and OP in struct from datasheet and powerflows
